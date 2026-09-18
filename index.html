@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Base Proof — Prove the work. Not the claim.</title>
+<meta name="description" content="Verifiable GitHub contribution evidence anchored on Base.">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:radial-gradient(circle at top,#143a9a 0,#08132d 36%,#030711 75%);color:#fff;min-height:100vh}
+.wrap{width:min(920px,92%);margin:auto;padding:48px 0 80px}.brand{font-size:14px;letter-spacing:3px;opacity:.72;text-transform:uppercase;margin-bottom:18px}
+h1{font-size:clamp(42px,9vw,78px);line-height:.95;margin:0;letter-spacing:-3px}.tag{margin-top:18px;font-size:20px;color:#aab7d6}
+.panel{margin-top:32px;background:rgba(10,18,38,.86);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:24px;backdrop-filter:blur(18px);box-shadow:0 20px 70px rgba(0,0,0,.35)}
+label{display:block;font-size:13px;color:#91a0c5;margin-bottom:8px}input{width:100%;border:1px solid #273454;background:#08101f;color:#fff;padding:15px 16px;border-radius:12px;font-size:15px;outline:none}
+button{width:100%;margin-top:14px;background:#1557ff;color:#fff;border:0;padding:15px;border-radius:12px;font-size:15px;font-weight:750;cursor:pointer}button.secondary{background:#0b1732;border:1px solid #2b3b62}button:disabled{opacity:.55;cursor:not-allowed}
+.status{display:none;margin-top:26px;padding-top:24px;border-top:1px solid rgba(255,255,255,.08)}.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(31,187,104,.12);color:#67e59d;border:1px solid rgba(68,219,129,.25);border-radius:999px;padding:8px 12px;font-weight:800;font-size:13px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.item{background:#08101f;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;min-width:0}.item span{color:#8896b7;display:block;font-size:12px;margin-bottom:7px}.item strong{display:block;font-size:14px;overflow-wrap:anywhere}.wide{grid-column:1/-1}
+.muted{color:#8997b6;font-size:13px;margin-top:16px;overflow-wrap:anywhere}.error{margin-top:16px;color:#ff9a9a;display:none}.ok{margin-top:16px;color:#67e59d;display:none}a{color:#76a2ff}
+.hero-note{margin-top:12px;color:#8190b1;font-size:13px}.footer{margin-top:28px;color:#64718f;font-size:12px;text-align:center}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<div class="brand">Base Proof</div>
+<h1>Prove the work.<br>Not the claim.</h1>
+<div class="tag">Verifiable contribution evidence anchored on Base.</div>
+<div class="hero-note">Public MVP · Base Sepolia · GitHub evidence</div>
+
+<section class="panel">
+<label>GitHub Pull Request</label>
+<input id="prUrl" value="https://github.com/base/base/pull/4650" placeholder="https://github.com/owner/repo/pull/123">
+<button id="analyzeBtn" onclick="analyzePR()">Analyze Contribution</button>
+<div id="analysisError" class="error"></div>
+<div id="analysisStatus" class="status">
+<div class="pill">✓ EVIDENCE GENERATED</div>
+<div class="grid">
+<div class="item wide"><span>Pull Request</span><strong id="aTitle"></strong></div>
+<div class="item"><span>Repository</span><strong id="aRepo"></strong></div>
+<div class="item"><span>Author</span><strong id="aAuthor"></strong></div>
+<div class="item"><span>Commits</span><strong id="aCommits"></strong></div>
+<div class="item"><span>Reviews</span><strong id="aReviews"></strong></div>
+<div class="item"><span>CI Checks</span><strong id="aChecks"></strong></div>
+<div class="item"><span>Files Changed</span><strong id="aFiles"></strong></div>
+<div class="item"><span>Additions</span><strong id="aAdditions"></strong></div>
+<div class="item"><span>Deletions</span><strong id="aDeletions"></strong></div>
+<div class="item wide"><span>Evidence Hash</span><strong id="aEvidence"></strong></div>
+<div class="item wide"><span>Source ID</span><strong id="aSource"></strong></div>
+</div>
+<button class="secondary" id="walletBtn" onclick="connectWallet()">Connect Wallet</button>
+<button id="createBtn" onclick="createProof()" disabled>Create Proof on Base</button>
+<div id="createError" class="error"></div><div id="createOk" class="ok"></div>
+</div>
+</section>
+
+<section class="panel">
+<label>Proof ID</label>
+<input id="proofId" value="0x0449c4c761ed0db4f7abd36cba758e51cb725f534253f0be545b65dd1a5d88a2">
+<button onclick="verifyProof()">Verify on Base</button>
+<div id="verifyError" class="error"></div>
+<div id="verifyStatus" class="status">
+<div class="pill">✓ VERIFIED ON BASE</div>
+<div class="grid">
+<div class="item wide"><span>Proof ID</span><strong id="vProof"></strong></div>
+<div class="item"><span>Subject</span><strong id="vSubject"></strong></div>
+<div class="item"><span>Status</span><strong id="vStatus"></strong></div>
+<div class="item wide"><span>Evidence Hash</span><strong id="vEvidence"></strong></div>
+<div class="item wide"><span>Source ID</span><strong id="vSource"></strong></div>
+<div class="item"><span>Created</span><strong id="vCreated"></strong></div>
+<div class="item"><span>Network</span><strong>Base Sepolia</strong></div>
+</div>
+<div class="muted">Contract: <a target="_blank" href="https://sepolia.basescan.org/address/0x0329a4ED3e098EE7bb5AbEda6f509dE41F9cfC10">0x0329...fC10</a></div>
+</div>
+</section>
+<div class="footer">Base Proof MVP · Evidence before reputation.</div>
+</main>
+
+<script>
+const CONTRACT="0x0329a4ED3e098EE7bb5AbEda6f509dE41F9cfC10";
+const RPC="https://sepolia.base.org";
+const CHAIN_ID=84532n;
+const AUTHORIZED_VERIFIER="0xA6193caA92B0c42DaB3d823ccEd7b2426Ba7e627".toLowerCase();
+const ABI=[
+"function registerProof(address subject,bytes32 sourceId,bytes32 evidenceHash) external returns(bytes32 proofId)",
+"function proofs(bytes32) view returns(address subject,bytes32 sourceId,bytes32 evidenceHash,uint64 createdAt,bool revoked)"
+];
+let latestAnalysis=null, walletSigner=null, walletAddress=null;
+
+function canonicalJson(v){
+ if(Array.isArray(v)) return "["+v.map(canonicalJson).join(",")+"]";
+ if(v&&typeof v==="object") return "{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+canonicalJson(v[k])).join(",")+"}";
+ return JSON.stringify(v);
+}
+function parsePrUrl(url){
+ const m=url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/);
+ if(!m) throw new Error("Enter a valid GitHub pull request URL.");
+ return {owner:m[1],repo:m[2],number:Number(m[3])};
+}
+async function gh(path){
+ const r=await fetch("https://api.github.com"+path,{headers:{"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}});
+ if(!r.ok){let x={};try{x=await r.json()}catch{};throw new Error(x.message||("GitHub API error "+r.status));}
+ return r.json();
+}
+async function analyzePR(){
+ const err=document.getElementById("analysisError"),status=document.getElementById("analysisStatus"),btn=document.getElementById("analyzeBtn");
+ err.style.display="none";status.style.display="none";btn.disabled=true;btn.innerText="Analyzing...";
+ try{
+  const {owner,repo,number}=parsePrUrl(document.getElementById("prUrl").value.trim());
+  const pr=await gh(`/repos/${owner}/${repo}/pulls/${number}`);
+  const [commits,reviews,checks]=await Promise.all([
+   gh(`/repos/${owner}/${repo}/pulls/${number}/commits?per_page=100`),
+   gh(`/repos/${owner}/${repo}/pulls/${number}/reviews?per_page=100`),
+   gh(`/repos/${owner}/${repo}/commits/${pr.head.sha}/check-runs?per_page=100`)
+  ]);
+  const checkRuns=(checks.check_runs||[]).map(c=>({name:c.name,status:c.status,conclusion:c.conclusion}));
+  const evidence={version:1,source:"github",repository:`${owner}/${repo}`,pullRequest:{number:pr.number,url:pr.html_url,title:pr.title,author:pr.user?.login??null,state:pr.state,merged:pr.merged??false,headSha:pr.head.sha,baseSha:pr.base.sha,additions:pr.additions,deletions:pr.deletions,changedFiles:pr.changed_files,createdAt:pr.created_at,updatedAt:pr.updated_at,mergedAt:pr.merged_at},commits:commits.map(c=>({sha:c.sha,author:c.author?.login??null,message:c.commit.message,verified:c.commit.verification?.verified??false})),reviews:reviews.map(r=>({user:r.user?.login??null,state:r.state,submittedAt:r.submitted_at??null})),checks:checkRuns};
+  const evidenceHash=ethers.keccak256(ethers.toUtf8Bytes(canonicalJson(evidence)));
+  const source=`github:${owner}/${repo}#${number}`;
+  const sourceId=ethers.keccak256(ethers.toUtf8Bytes(source));
+  const success=checkRuns.filter(c=>c.conclusion==="success").length;
+  latestAnalysis={evidence,evidenceHash,sourceId,source};
+  document.getElementById("aTitle").innerText=`#${pr.number} — ${pr.title}`;
+  document.getElementById("aRepo").innerText=`${owner}/${repo}`;
+  document.getElementById("aAuthor").innerText=pr.user?.login??"Unknown";
+  document.getElementById("aCommits").innerText=commits.length;
+  document.getElementById("aReviews").innerText=reviews.length;
+  document.getElementById("aChecks").innerText=`${success}/${checkRuns.length} successful`;
+  document.getElementById("aFiles").innerText=pr.changed_files;
+  document.getElementById("aAdditions").innerText="+"+pr.additions;
+  document.getElementById("aDeletions").innerText="-"+pr.deletions;
+  document.getElementById("aEvidence").innerText=evidenceHash;
+  document.getElementById("aSource").innerText=sourceId;
+  status.style.display="block";
+  refreshCreateState();
+ }catch(e){err.innerText=e.message||String(e);err.style.display="block";}
+ finally{btn.disabled=false;btn.innerText="Analyze Contribution";}
+}
+async function connectWallet(){
+ const err=document.getElementById("createError");err.style.display="none";
+ try{
+  if(!window.ethereum) throw new Error("No injected wallet found. Open this page in a wallet-enabled browser.");
+  await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x14a34"}]}).catch(async e=>{
+   if(e.code===4902) await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:"0x14a34",chainName:"Base Sepolia",nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18},rpcUrls:[RPC],blockExplorerUrls:["https://sepolia.basescan.org"]}]});
+   else throw e;
+  });
+  const provider=new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts",[]);
+  walletSigner=await provider.getSigner();
+  walletAddress=await walletSigner.getAddress();
+  document.getElementById("walletBtn").innerText="Wallet: "+walletAddress.slice(0,6)+"..."+walletAddress.slice(-4);
+  refreshCreateState();
+ }catch(e){err.innerText=e.message||String(e);err.style.display="block";}
+}
+function refreshCreateState(){
+ const btn=document.getElementById("createBtn");
+ btn.disabled=!(latestAnalysis&&walletSigner&&walletAddress&&walletAddress.toLowerCase()===AUTHORIZED_VERIFIER);
+ if(walletAddress&&walletAddress.toLowerCase()!==AUTHORIZED_VERIFIER){
+  const err=document.getElementById("createError");err.innerText="This MVP contract only allows its verifier wallet to register proofs.";err.style.display="block";
+ }
+}
+async function createProof(){
+ const err=document.getElementById("createError"),ok=document.getElementById("createOk"),btn=document.getElementById("createBtn");
+ err.style.display="none";ok.style.display="none";
+ try{
+  if(!latestAnalysis||!walletSigner) throw new Error("Analyze a PR and connect the verifier wallet first.");
+  const c=new ethers.Contract(CONTRACT,ABI,walletSigner);
+  const coder=ethers.AbiCoder.defaultAbiCoder();
+  const proofId=ethers.keccak256(coder.encode(["address","bytes32","bytes32","uint256"],[walletAddress,latestAnalysis.sourceId,latestAnalysis.evidenceHash,CHAIN_ID]));
+  const existing=await c.proofs(proofId);
+  if(existing.createdAt!==0n){
+   document.getElementById("proofId").value=proofId;ok.innerText="Proof already exists: "+proofId;ok.style.display="block";await verifyProof();return;
+  }
+  btn.disabled=true;btn.innerText="Confirm in wallet...";
+  const tx=await c.registerProof(walletAddress,latestAnalysis.sourceId,latestAnalysis.evidenceHash);
+  btn.innerText="Waiting for Base...";
+  await tx.wait();
+  document.getElementById("proofId").value=proofId;
+  ok.innerHTML='✓ Proof created · <a target="_blank" href="https://sepolia.basescan.org/tx/'+tx.hash+'">View transaction</a>';ok.style.display="block";
+  await verifyProof();
+ }catch(e){err.innerText=e.shortMessage||e.message||String(e);err.style.display="block";}
+ finally{btn.innerText="Create Proof on Base";refreshCreateState();}
+}
+async function verifyProof(){
+ const status=document.getElementById("verifyStatus"),err=document.getElementById("verifyError");status.style.display="none";err.style.display="none";
+ try{
+  const id=document.getElementById("proofId").value.trim();
+  if(!ethers.isHexString(id,32)) throw new Error("Invalid proof ID");
+  const c=new ethers.Contract(CONTRACT,ABI,new ethers.JsonRpcProvider(RPC));
+  const p=await c.proofs(id);if(p.createdAt===0n) throw new Error("Proof not found");
+  document.getElementById("vProof").innerText=id;document.getElementById("vSubject").innerText=p.subject;document.getElementById("vStatus").innerText=p.revoked?"Revoked":"Active";document.getElementById("vEvidence").innerText=p.evidenceHash;document.getElementById("vSource").innerText=p.sourceId;document.getElementById("vCreated").innerText=new Date(Number(p.createdAt)*1000).toLocaleString();status.style.display="block";
+ }catch(e){err.innerText=e.message||String(e);err.style.display="block";}
+}
+verifyProof();
+</script>
+</body></html>
