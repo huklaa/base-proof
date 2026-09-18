@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "compile:v2": "node scripts/compile-v2.mjs"
+    "compile:v2": "node scripts/compile-v2.mjs",
+    "deploy:v2": "node scripts/deploy-v2.mjs"
   },
   "dependencies": {
     "ethers": "^6.15.0",
