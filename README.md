@@ -180,6 +180,14 @@ http://127.0.0.1:8080
 A wallet-enabled browser is required only for proof registration. Public proof verification is read-only.
 
 
+## Live V2 proof
+
+The canonical GitHub contribution snapshot has also been registered in V2.
+
+- Proof ID: `0x0449c4c761ed0db4f7abd36cba758e51cb725f534253f0be545b65dd1a5d88a2`
+- Registration tx: `0x9c1524ae010da5fcdf00049ae9759f8be5432618a497241c22775339ca66ea01`
+- Explorer: https://sepolia.basescan.org/tx/0x9c1524ae010da5fcdf00049ae9759f8be5432618a497241c22775339ca66ea01
+
 ## Challenge / dispute protocol (V2)
 
 V2 is implemented in [contracts/BaseProofRegistryV2.sol](contracts/BaseProofRegistryV2.sol).
