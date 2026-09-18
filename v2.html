@@ -16,9 +16,10 @@ label{display:block;color:var(--muted);font-size:13px;margin:14px 0 8px}input,te
 button{width:100%;margin-top:14px;background:var(--blue);color:#fff;border:0;padding:14px;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer}button.secondary{background:#0b1732;border:1px solid #2b3b62}button.danger{background:#7d2730}button.warn{background:#715719}button:disabled{opacity:.5;cursor:not-allowed}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.wide{grid-column:1/-1}.item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;min-width:0}.item span{display:block;color:#8997b6;font-size:12px;margin-bottom:7px}.item strong{display:block;overflow-wrap:anywhere;font-size:14px}
 .status{display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)}.pill{display:inline-block;padding:7px 11px;border-radius:999px;background:rgba(31,187,104,.12);border:1px solid rgba(68,219,129,.25);color:var(--green);font-size:12px;font-weight:800;margin-bottom:16px}.pill.yellow{color:var(--yellow);background:rgba(245,199,106,.09);border-color:rgba(245,199,106,.22)}.pill.red{color:var(--red);background:rgba(255,80,80,.09);border-color:rgba(255,80,80,.2)}
-.err{display:none;color:#ff9a9a;margin-top:14px;line-height:1.5}.ok{display:none;color:var(--green);margin-top:14px;line-height:1.5}.note{color:#8997b6;font-size:12px;line-height:1.55;margin-top:14px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.meta a{color:#8faeff;text-decoration:none;font-size:12px;border:1px solid var(--line);padding:8px 10px;border-radius:9px}
+.err{display:none;color:#ff9a9a;margin-top:14px;line-height:1.5}.ok{display:none;color:var(--green);margin-top:14px;line-height:1.5}.note{color:#8997b6;font-size:12px;line-height:1.55;margin-top:14px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.meta a{color:#8faeff;text-decoration:none;font-size:12px;border:1px solid var(--line);padding:8px 10px;border-radius:9px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}.metric{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px}.metric b{display:block;font-size:22px;margin-bottom:5px}.metric span{color:#8997b6;font-size:11px}.support{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.support a{flex:1;text-align:center;text-decoration:none;border-radius:12px;padding:13px 14px;font-weight:800;font-size:13px}.support .star{background:#fff;color:#071126}.support .repo{background:#0b1732;color:#dce6ff;border:1px solid #2b3b62}
 @media(max-width:700px){
  .grid,.actions{grid-template-columns:1fr}
+ .metrics{grid-template-columns:1fr 1fr}
  .wide{grid-column:auto}
  .top{align-items:flex-start;flex-direction:column}
  .panel{padding:18px;margin-top:22px}
@@ -59,6 +60,22 @@ button{width:100%;margin-top:14px;background:var(--blue);color:#fff;border:0;pad
 </section>
 
 <section class="panel">
+<h2>Project impact</h2>
+<p class="lead">Real usage signals from GitHub and the V2 contract. These numbers increase when people actually use or support Base Proof.</p>
+<div class="metrics">
+  <div class="metric"><b id="mProofs">—</b><span>V2 proofs</span></div>
+  <div class="metric"><b id="mChallenges">—</b><span>Challenges</span></div>
+  <div class="metric"><b id="mActors">—</b><span>Onchain actors</span></div>
+  <div class="metric"><b id="mStars">—</b><span>GitHub stars</span></div>
+</div>
+<div class="support">
+  <a class="star" target="_blank" href="https://github.com/huklaa/base-proof">★ Star Base Proof on GitHub</a>
+  <a class="repo" target="_blank" href="https://github.com/huklaa/base-proof">View source ↗</a>
+</div>
+<div class="note" id="forksNote">Loading public project metrics…</div>
+</section>
+
+<section class="panel">
 <h2>Wallet</h2>
 <p class="lead">Any wallet can open a challenge. Only the owner/verifier wallet can register proofs or resolve disputes in this MVP.</p>
 <div id="walletConnectArea">
@@ -93,6 +110,9 @@ button{width:100%;margin-top:14px;background:var(--blue);color:#fff;border:0;pad
 <button id="registerBtn" onclick="registerProof()" disabled>Register V2 Proof</button>
 <div id="registerOk" class="ok"></div>
 <div id="registerError" class="err"></div>
+<div class="support" id="postProofSupport" style="display:none">
+  <a class="star" target="_blank" href="https://github.com/huklaa/base-proof">★ Proof worked — star the project</a>
+</div>
 </div>
 </section>
 
@@ -162,6 +182,8 @@ const CONTRACT="0x1a6F58F1c98f2FCA265D3B3A0Fb3FD74273765De";
 const RPC="https://sepolia.base.org";
 const CHAIN_ID=84532n;
 const OWNER="0xA6193caA92B0c42DaB3d823ccEd7b2426Ba7e627".toLowerCase();
+const BUILDER_CODE=""; // Set to the real Base Builder Code from base.dev when claimed.
+const V2_DEPLOY_BLOCK=46983928;
 const ZERO32="0x"+"0".repeat(64);
 const ABI=[
  "function owner() view returns(address)",
@@ -172,11 +194,67 @@ const ABI=[
  "function activeChallengeByProof(bytes32) view returns(bytes32)",
  "function openChallenge(bytes32,bytes32) returns(bytes32)",
  "function challenges(bytes32) view returns(bytes32 proofId,address challenger,bytes32 reasonHash,uint64 createdAt,uint64 resolvedAt,uint8 status)",
- "function resolveChallenge(bytes32,bool)"
+ "function resolveChallenge(bytes32,bool)",
+ "event ProofRegistered(bytes32 indexed proofId,address indexed subject,bytes32 indexed sourceId,bytes32 evidenceHash)",
+ "event ChallengeOpened(bytes32 indexed challengeId,bytes32 indexed proofId,address indexed challenger,bytes32 reasonHash)"
 ];
 let signer=null,walletAddress=null,latestAnalysis=null;
 const readProvider=new ethers.JsonRpcProvider(RPC);
 const readContract=new ethers.Contract(CONTRACT,ABI,readProvider);
+
+async function loadProjectMetrics(){
+ try{
+  const repoResp=await fetch("https://api.github.com/repos/huklaa/base-proof");
+  const repo=await repoResp.json();
+  if(repoResp.ok){
+   document.getElementById("mStars").innerText=repo.stargazers_count ?? 0;
+   document.getElementById("forksNote").innerText=
+    (repo.forks_count ?? 0)+" forks · "+(repo.open_issues_count ?? 0)+" open issues · public GitHub metrics";
+  }
+
+  const iface=new ethers.Interface(ABI);
+  const latest=await readProvider.getBlockNumber();
+  const proofTopic=iface.getEvent("ProofRegistered").topicHash;
+  const challengeTopic=iface.getEvent("ChallengeOpened").topicHash;
+
+  const [proofLogs,challengeLogs]=await Promise.all([
+   readProvider.getLogs({address:CONTRACT,fromBlock:V2_DEPLOY_BLOCK,toBlock:latest,topics:[proofTopic]}),
+   readProvider.getLogs({address:CONTRACT,fromBlock:V2_DEPLOY_BLOCK,toBlock:latest,topics:[challengeTopic]})
+  ]);
+
+  const actors=new Set();
+  for(const log of proofLogs){
+   try{actors.add(iface.parseLog(log).args.subject.toLowerCase())}catch{}
+  }
+  for(const log of challengeLogs){
+   try{actors.add(iface.parseLog(log).args.challenger.toLowerCase())}catch{}
+  }
+
+  document.getElementById("mProofs").innerText=proofLogs.length;
+  document.getElementById("mChallenges").innerText=challengeLogs.length;
+  document.getElementById("mActors").innerText=actors.size;
+ }catch(e){
+  document.getElementById("forksNote").innerText="Live metrics temporarily unavailable.";
+ }
+}
+
+function erc8021Suffix(code){
+ if(!code)return null;
+ const codeBytes=ethers.toUtf8Bytes(code);
+ if(codeBytes.length>255)throw new Error("Builder Code too long.");
+ const schemaData=ethers.concat([codeBytes,new Uint8Array([codeBytes.length]),new Uint8Array([0])]);
+ return ethers.hexlify(ethers.concat([schemaData,ethers.getBytes("0x80218021802180218021802180218021")]));
+}
+
+async function sendContractCall(functionName,args){
+ if(!signer)throw new Error("Connect a wallet first.");
+ const iface=new ethers.Interface(ABI);
+ let data=iface.encodeFunctionData(functionName,args);
+ const suffix=erc8021Suffix(BUILDER_CODE);
+ if(suffix)data=data+suffix.slice(2);
+ const tx=await signer.sendTransaction({to:CONTRACT,data});
+ return tx;
+}
 
 function msg(id,text,show=true){const e=document.getElementById(id);e.innerText=text;e.style.display=show?"block":"none"}
 function clear(...ids){ids.forEach(id=>document.getElementById(id).style.display="none")}
@@ -300,14 +378,16 @@ async function registerProof(){
   const existing=await readContract.proofs(proofId);
   if(existing.createdAt!==0n){
    document.getElementById("proofId").value=proofId;document.getElementById("challengeProofId").value=proofId;
-   msg("registerOk","Proof already exists: "+proofId);await inspectProof();return
+   msg("registerOk","Proof already exists: "+proofId);document.getElementById("postProofSupport").style.display="flex";await inspectProof();return
   }
-  const tx=await c.registerProof(walletAddress,latestAnalysis.sourceId,latestAnalysis.evidenceHash);
+  const tx=await sendContractCall("registerProof",[walletAddress,latestAnalysis.sourceId,latestAnalysis.evidenceHash]);
   msg("registerOk","Transaction sent: "+tx.hash);
   await tx.wait();
   document.getElementById("proofId").value=proofId;document.getElementById("challengeProofId").value=proofId;
   msg("registerOk","✓ V2 proof registered: "+proofId+" · tx "+tx.hash);
+  document.getElementById("postProofSupport").style.display="flex";
   await inspectProof();
+  await loadProjectMetrics();
  }catch(e){msg("registerError",e.shortMessage||e.message||String(e))}
 }
 async function inspectProof(){
@@ -336,13 +416,12 @@ async function openChallenge(){
   const reasonHash=ethers.keccak256(ethers.toUtf8Bytes(reason));
   const coder=ethers.AbiCoder.defaultAbiCoder();
   const challengeId=ethers.keccak256(coder.encode(["bytes32","address","bytes32","uint256"],[proofId,walletAddress,reasonHash,CHAIN_ID]));
-  const c=new ethers.Contract(CONTRACT,ABI,signer);
-  const tx=await c.openChallenge(proofId,reasonHash);
+  const tx=await sendContractCall("openChallenge",[proofId,reasonHash]);
   msg("challengeOk","Transaction sent: "+tx.hash);
   await tx.wait();
   document.getElementById("challengeId").value=challengeId;
   msg("challengeOk","✓ Challenge opened: "+challengeId+" · reason hash "+reasonHash);
-  await inspectChallenge();await inspectProof();
+  await inspectChallenge();await inspectProof();await loadProjectMetrics();
  }catch(e){msg("challengeError",e.shortMessage||e.message||String(e))}
 }
 function challengeStatusName(v){return["None","Open","Upheld","Rejected"][Number(v)]||("Unknown("+v+")")}
@@ -361,6 +440,8 @@ async function inspectChallenge(){
   refreshPermissions();
  }catch(e){msg("inspectChallengeError",e.message||String(e))}
 }
+loadProjectMetrics();
+
 async function resolveChallenge(uphold){
  clear("resolveError","resolveOk");
  try{
@@ -368,12 +449,11 @@ async function resolveChallenge(uphold){
   if(walletAddress.toLowerCase()!==OWNER)throw new Error("Only the V2 owner can resolve challenges.");
   const id=document.getElementById("challengeId").value.trim();
   if(!ethers.isHexString(id,32))throw new Error("Invalid challenge ID.");
-  const c=new ethers.Contract(CONTRACT,ABI,signer);
-  const tx=await c.resolveChallenge(id,uphold);
+  const tx=await sendContractCall("resolveChallenge",[id,uphold]);
   msg("resolveOk","Transaction sent: "+tx.hash);
   await tx.wait();
   msg("resolveOk",uphold?"✓ Challenge upheld; proof revoked.":"✓ Challenge rejected; proof remains active.");
-  await inspectChallenge();await inspectProof();
+  await inspectChallenge();await inspectProof();await loadProjectMetrics();
  }catch(e){msg("resolveError",e.shortMessage||e.message||String(e))}
 }
 </script>
