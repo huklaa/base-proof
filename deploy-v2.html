@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deploy Base Proof V2</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:radial-gradient(circle at top,#143a9a 0,#08132d 36%,#030711 75%);color:#fff;min-height:100vh}
+.wrap{width:min(760px,92%);margin:auto;padding:46px 0 80px}.brand{font-size:14px;letter-spacing:3px;color:#aab7d6;text-transform:uppercase}.back{display:inline-block;margin-bottom:28px;color:#8eacff;text-decoration:none}
+h1{font-size:clamp(38px,8vw,64px);line-height:1;margin:12px 0}.sub{color:#aab7d6;font-size:18px;line-height:1.5}
+.panel{margin-top:30px;background:rgba(10,18,38,.86);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:24px;box-shadow:0 20px 70px rgba(0,0,0,.35)}
+.item{background:#08101f;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;margin-top:12px}.item span{display:block;color:#8997b6;font-size:12px;margin-bottom:7px}.item strong{display:block;overflow-wrap:anywhere}
+button{width:100%;margin-top:14px;background:#1557ff;color:#fff;border:0;padding:15px;border-radius:12px;font-size:15px;font-weight:800}button.secondary{background:#0b1732;border:1px solid #2b3b62}button:disabled{opacity:.5}
+.ok{display:none;color:#67e59d;margin-top:18px;line-height:1.6}.err{display:none;color:#ff9a9a;margin-top:18px;line-height:1.6}.note{color:#8997b6;font-size:13px;line-height:1.55;margin-top:16px}a{color:#76a2ff}.pill{display:inline-block;background:rgba(31,187,104,.12);color:#67e59d;border:1px solid rgba(68,219,129,.25);padding:7px 11px;border-radius:999px;font-size:12px;font-weight:800;margin-top:14px}
+</style>
+</head>
+<body>
+<main class="wrap">
+<a class="back" href="/">← Back to Base Proof</a>
+<div class="brand">Base Proof Protocol</div>
+<h1>Deploy V2</h1>
+<div class="sub">Challenge and dispute support, deployed directly from your wallet to Base Sepolia.</div>
+
+<section class="panel">
+<div class="pill">ONE DEPLOY TRANSACTION</div>
+<div class="item"><span>Network</span><strong>Base Sepolia · Chain ID 84532</strong></div>
+<div class="item"><span>Expected owner / initial verifier</span><strong>0xA6193caA92B0c42DaB3d823ccEd7b2426Ba7e627</strong></div>
+<div class="item"><span>Contract</span><strong>BaseProofRegistryV2</strong></div>
+
+<button class="secondary" id="connectBtn" onclick="connectWallet()">Connect deployer wallet</button>
+<button id="deployBtn" onclick="deployV2()" disabled>Deploy Base Proof V2</button>
+
+<div id="error" class="err"></div>
+<div id="result" class="ok"></div>
+
+<div class="note">
+The contract source is compiled by this project's serverless artifact endpoint. Your private key never leaves your wallet. The deployment transaction is shown to the wallet for approval before anything is sent.
+</div>
+</section>
+</main>
+
+<script>
+const RPC="https://sepolia.base.org";
+const EXPECTED="0xA6193caA92B0c42DaB3d823ccEd7b2426Ba7e627".toLowerCase();
+let signer=null;
+let walletAddress=null;
+
+function showError(message){
+ const el=document.getElementById("error");
+ el.innerText=message;el.style.display="block";
+}
+function clearError(){
+ document.getElementById("error").style.display="none";
+}
+
+async function ensureBaseSepolia(){
+ await window.ethereum.request({
+  method:"wallet_switchEthereumChain",
+  params:[{chainId:"0x14a34"}]
+ }).catch(async e=>{
+  if(e.code===4902){
+   await window.ethereum.request({
+    method:"wallet_addEthereumChain",
+    params:[{
+     chainId:"0x14a34",
+     chainName:"Base Sepolia",
+     nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18},
+     rpcUrls:[RPC],
+     blockExplorerUrls:["https://sepolia.basescan.org"]
+    }]
+   });
+  } else throw e;
+ });
+}
+
+async function connectWallet(){
+ clearError();
+ try{
+  if(!window.ethereum) throw new Error("No injected wallet found. Open this page in your wallet browser.");
+  await ensureBaseSepolia();
+  const provider=new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts",[]);
+  signer=await provider.getSigner();
+  walletAddress=await signer.getAddress();
+
+  document.getElementById("connectBtn").innerText=
+   "Wallet: "+walletAddress.slice(0,6)+"..."+walletAddress.slice(-4);
+
+  if(walletAddress.toLowerCase()!==EXPECTED){
+   signer=null;
+   document.getElementById("deployBtn").disabled=true;
+   throw new Error("Wrong wallet. Connect 0xA619...e627 so the V2 owner/verifier stays consistent with the current MVP.");
+  }
+
+  document.getElementById("deployBtn").disabled=false;
+ }catch(e){showError(e.shortMessage||e.message||String(e));}
+}
+
+async function deployV2(){
+ clearError();
+ const btn=document.getElementById("deployBtn");
+ const out=document.getElementById("result");
+ out.style.display="none";
+
+ try{
+  if(!signer) throw new Error("Connect the deployer wallet first.");
+
+  btn.disabled=true;
+  btn.innerText="Preparing contract...";
+
+  const response=await fetch("/api/compile-v2");
+  const artifact=await response.json();
+
+  if(!artifact.ok){
+   throw new Error(artifact.error || (artifact.errors||[]).join("\n") || "V2 compilation failed");
+  }
+
+  btn.innerText="Confirm deployment in wallet...";
+
+  const factory=new ethers.ContractFactory(
+   artifact.abi,
+   artifact.bytecode,
+   signer
+  );
+
+  const contract=await factory.deploy();
+  const tx=contract.deploymentTransaction();
+
+  btn.innerText="Waiting for Base...";
+  await contract.waitForDeployment();
+
+  const address=await contract.getAddress();
+
+  localStorage.setItem("baseProofV2Address",address);
+  localStorage.setItem("baseProofV2DeployTx",tx.hash);
+
+  out.innerHTML=
+   "<strong>✓ BASE PROOF V2 DEPLOYED</strong><br><br>"+
+   "Contract: <code>"+address+"</code><br><br>"+
+   "Transaction: <code>"+tx.hash+"</code><br><br>"+
+   '<a target="_blank" href="https://sepolia.basescan.org/address/'+address+'">View contract on BaseScan ↗</a><br>'+
+   '<a target="_blank" href="https://sepolia.basescan.org/tx/'+tx.hash+'">View deployment transaction ↗</a>';
+
+  out.style.display="block";
+  btn.innerText="V2 deployed";
+ }catch(e){
+  showError(e.shortMessage||e.message||String(e));
+  btn.disabled=false;
+  btn.innerText="Deploy Base Proof V2";
+ }
+}
+
+const saved=localStorage.getItem("baseProofV2Address");
+if(saved){
+ const out=document.getElementById("result");
+ const tx=localStorage.getItem("baseProofV2DeployTx")||"";
+ out.innerHTML=
+  "Saved V2 deployment on this device:<br><br>"+
+  "Contract: <code>"+saved+"</code>"+
+  (tx?'<br><br>Transaction: <code>'+tx+"</code>":"");
+ out.style.display="block";
+}
+</script>
+</body>
+</html>
