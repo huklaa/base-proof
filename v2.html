@@ -270,13 +270,18 @@ async function analyzePR(){
    gh(`/repos/${owner}/${repo}/commits/${pr.head.sha}/check-runs?per_page=100`)
   ]);
   const checkRuns=(checks.check_runs||[]).map(c=>({name:c.name,status:c.status,conclusion:c.conclusion}));
+  const checkSummary={
+    passed:checkRuns.filter(c=>c.conclusion==="success").length,
+    skipped:checkRuns.filter(c=>c.conclusion==="skipped").length,
+    failed:checkRuns.filter(c=>["failure","cancelled","timed_out","action_required"].includes(c.conclusion)).length
+  };
   const evidence={version:1,source:"github",repository:`${owner}/${repo}`,pullRequest:{number:pr.number,url:pr.html_url,title:pr.title,author:pr.user?.login??null,state:pr.state,merged:pr.merged??false,headSha:pr.head.sha,baseSha:pr.base.sha,additions:pr.additions,deletions:pr.deletions,changedFiles:pr.changed_files,createdAt:pr.created_at,updatedAt:pr.updated_at,mergedAt:pr.merged_at},commits:commits.map(c=>({sha:c.sha,author:c.author?.login??null,message:c.commit.message,verified:c.commit.verification?.verified??false})),reviews:reviews.map(r=>({user:r.user?.login??null,state:r.state,submittedAt:r.submitted_at??null})),checks:checkRuns};
   const evidenceHash=ethers.keccak256(ethers.toUtf8Bytes(canonicalJson(evidence)));
   const sourceId=ethers.keccak256(ethers.toUtf8Bytes(`github:${owner}/${repo}#${number}`));
   latestAnalysis={evidenceHash,sourceId};
   document.getElementById("aTitle").innerText=`#${pr.number} — ${pr.title}`;
   document.getElementById("aAuthor").innerText=pr.user?.login??"Unknown";
-  document.getElementById("aChecks").innerText=`${checkRuns.filter(c=>c.conclusion==="success").length}/${checkRuns.length} successful`;
+  document.getElementById("aChecks").innerText=`${checkSummary.passed} passed · ${checkSummary.skipped} skipped · ${checkSummary.failed} failed`;
   document.getElementById("aEvidence").innerText=evidenceHash;
   document.getElementById("aSource").innerText=sourceId;
   document.getElementById("analysisStatus").style.display="block";
