@@ -7,27 +7,45 @@
 <meta name="description" content="Verifiable GitHub contribution evidence anchored on Base.">
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:radial-gradient(circle at top,#143a9a 0,#08132d 36%,#030711 75%);color:#fff;min-height:100vh}
-.wrap{width:min(920px,92%);margin:auto;padding:48px 0 80px}.brand{font-size:14px;letter-spacing:3px;opacity:.72;text-transform:uppercase;margin-bottom:18px}
-h1{font-size:clamp(42px,9vw,78px);line-height:.95;margin:0;letter-spacing:-3px}.tag{margin-top:18px;font-size:20px;color:#aab7d6}
-.panel{margin-top:32px;background:rgba(10,18,38,.86);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:24px;backdrop-filter:blur(18px);box-shadow:0 20px 70px rgba(0,0,0,.35)}
-label{display:block;font-size:13px;color:#91a0c5;margin-bottom:8px}input{width:100%;border:1px solid #273454;background:#08101f;color:#fff;padding:15px 16px;border-radius:12px;font-size:15px;outline:none}
-button{width:100%;margin-top:14px;background:#1557ff;color:#fff;border:0;padding:15px;border-radius:12px;font-size:15px;font-weight:750;cursor:pointer}button.secondary{background:#0b1732;border:1px solid #2b3b62}button:disabled{opacity:.55;cursor:not-allowed}
-.status{display:none;margin-top:26px;padding-top:24px;border-top:1px solid rgba(255,255,255,.08)}.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(31,187,104,.12);color:#67e59d;border:1px solid rgba(68,219,129,.25);border-radius:999px;padding:8px 12px;font-weight:800;font-size:13px;margin-bottom:20px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.item{background:#08101f;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;min-width:0}.item span{color:#8896b7;display:block;font-size:12px;margin-bottom:7px}.item strong{display:block;font-size:14px;overflow-wrap:anywhere}.wide{grid-column:1/-1}
-.muted{color:#8997b6;font-size:13px;margin-top:16px;overflow-wrap:anywhere}.error{margin-top:16px;color:#ff9a9a;display:none}.ok{margin-top:16px;color:#67e59d;display:none}a{color:#76a2ff}
-.hero-note{margin-top:12px;color:#8190b1;font-size:13px}.footer{margin-top:28px;color:#64718f;font-size:12px;text-align:center}
-@media(max-width:650px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+:root{--bg:#030711;--panel:rgba(10,18,38,.86);--card:#08101f;--line:rgba(255,255,255,.09);--blue:#1557ff;--muted:#91a0c5;--green:#67e59d}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:radial-gradient(circle at top,#143a9a 0,#08132d 34%,#030711 74%);color:#fff;min-height:100vh}
+.wrap{width:min(960px,92%);margin:auto;padding:42px 0 80px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:26px}.brand{font-size:14px;letter-spacing:3px;opacity:.8;text-transform:uppercase}.links{display:flex;gap:12px;flex-wrap:wrap}.links a{font-size:13px;text-decoration:none;color:#a9b6d4}
+h1{font-size:clamp(42px,9vw,78px);line-height:.95;margin:0;letter-spacing:-3px}.tag{margin-top:18px;font-size:20px;color:#aab7d6;max-width:720px}.hero-note{margin-top:13px;color:#8190b1;font-size:13px}.hero-actions{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}.hero-actions a{display:inline-block;padding:10px 14px;border-radius:11px;border:1px solid var(--line);background:rgba(8,16,31,.7);text-decoration:none;color:#dce6ff;font-size:13px}
+.panel{margin-top:32px;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;backdrop-filter:blur(18px);box-shadow:0 20px 70px rgba(0,0,0,.35)}
+.panel h2{margin:0 0 8px;font-size:22px}.panel p.lead{margin:0 0 20px;color:#8997b6;font-size:14px}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:8px}input{width:100%;border:1px solid #273454;background:var(--card);color:#fff;padding:15px 16px;border-radius:12px;font-size:15px;outline:none}input:focus{border-color:#4f7dff}
+button{width:100%;margin-top:14px;background:var(--blue);color:#fff;border:0;padding:15px;border-radius:12px;font-size:15px;font-weight:750;cursor:pointer}button.secondary{background:#0b1732;border:1px solid #2b3b62}button.ghost{background:transparent;border:1px solid #2b3b62}button:disabled{opacity:.55;cursor:not-allowed}
+.status{display:none;margin-top:26px;padding-top:24px;border-top:1px solid var(--line)}.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(31,187,104,.12);color:var(--green);border:1px solid rgba(68,219,129,.25);border-radius:999px;padding:8px 12px;font-weight:800;font-size:13px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.item{background:var(--card);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;min-width:0;position:relative}.item span{color:#8896b7;display:block;font-size:12px;margin-bottom:7px}.item strong{display:block;font-size:14px;overflow-wrap:anywhere}.wide{grid-column:1/-1}
+.row-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}.row-actions button,.row-actions a{width:auto;margin:0;padding:10px 13px;border-radius:10px;font-size:13px}.row-actions a{background:#0b1732;border:1px solid #2b3b62;color:#dce6ff;text-decoration:none}
+.muted{color:#8997b6;font-size:13px;margin-top:16px;overflow-wrap:anywhere}.error{margin-top:16px;color:#ff9a9a;display:none}.ok{margin-top:16px;color:var(--green);display:none}a{color:#76a2ff}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}.step b{display:block;font-size:13px;margin-bottom:6px}.step span{font-size:12px;color:#8997b6;line-height:1.45}.n{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:#123fba;margin-bottom:12px;font-size:12px;font-weight:800}
+.footer{margin-top:28px;color:#64718f;font-size:12px;text-align:center}.footer a{color:#8190b1}
+@media(max-width:720px){.grid,.steps{grid-template-columns:1fr}.wide{grid-column:auto}.top{align-items:flex-start;flex-direction:column}.links{gap:10px}h1{letter-spacing:-2px}.panel{padding:20px}}
 </style>
 </head>
 <body>
 <main class="wrap">
-<div class="brand">Base Proof</div>
+<div class="top">
+  <div class="brand">Base Proof</div>
+  <div class="links">
+    <a target="_blank" href="https://github.com/huklaa/base-proof">GitHub</a>
+    <a target="_blank" href="https://sepolia.basescan.org/address/0x0329a4ED3e098EE7bb5AbEda6f509dE41F9cfC10">Contract</a>
+    <a href="#how">How it works</a>
+  </div>
+</div>
+
 <h1>Prove the work.<br>Not the claim.</h1>
-<div class="tag">Verifiable contribution evidence anchored on Base.</div>
-<div class="hero-note">Public MVP · Base Sepolia · GitHub evidence</div>
+<div class="tag">Turn public contribution evidence into a deterministic snapshot and anchor it on Base.</div>
+<div class="hero-note">Experimental public MVP · Base Sepolia · GitHub evidence adapter</div>
+<div class="hero-actions">
+  <a target="_blank" href="https://sepolia.basescan.org/tx/0xcb6b1d42c3a024c51941db7fa86498c0dd2983882008ced8c47c97060ac499b1">View canonical proof tx</a>
+  <a target="_blank" href="https://github.com/huklaa/base-proof/blob/main/docs/EVIDENCE_SCHEMA.md">Evidence schema</a>
+</div>
 
 <section class="panel">
+<h2>Analyze contribution</h2>
+<p class="lead">Paste a public GitHub pull request. Base Proof builds a canonical evidence snapshot from public PR data.</p>
 <label>GitHub Pull Request</label>
 <input id="prUrl" value="https://github.com/base/base/pull/4650" placeholder="https://github.com/owner/repo/pull/123">
 <button id="analyzeBtn" onclick="analyzePR()">Analyze Contribution</button>
@@ -35,7 +53,7 @@ button{width:100%;margin-top:14px;background:#1557ff;color:#fff;border:0;padding
 <div id="analysisStatus" class="status">
 <div class="pill">✓ EVIDENCE GENERATED</div>
 <div class="grid">
-<div class="item wide"><span>Pull Request</span><strong id="aTitle"></strong></div>
+<div class="item wide"><span>Pull Request</span><strong id="aTitle"></strong><div class="row-actions"><a id="aPrLink" target="_blank">Open PR ↗</a></div></div>
 <div class="item"><span>Repository</span><strong id="aRepo"></strong></div>
 <div class="item"><span>Author</span><strong id="aAuthor"></strong></div>
 <div class="item"><span>Commits</span><strong id="aCommits"></strong></div>
@@ -44,16 +62,19 @@ button{width:100%;margin-top:14px;background:#1557ff;color:#fff;border:0;padding
 <div class="item"><span>Files Changed</span><strong id="aFiles"></strong></div>
 <div class="item"><span>Additions</span><strong id="aAdditions"></strong></div>
 <div class="item"><span>Deletions</span><strong id="aDeletions"></strong></div>
-<div class="item wide"><span>Evidence Hash</span><strong id="aEvidence"></strong></div>
-<div class="item wide"><span>Source ID</span><strong id="aSource"></strong></div>
+<div class="item wide"><span>Evidence Hash</span><strong id="aEvidence"></strong><div class="row-actions"><button class="ghost" onclick="copyText('aEvidence',this)">Copy evidence hash</button></div></div>
+<div class="item wide"><span>Source ID</span><strong id="aSource"></strong><div class="row-actions"><button class="ghost" onclick="copyText('aSource',this)">Copy source ID</button></div></div>
 </div>
-<button class="secondary" id="walletBtn" onclick="connectWallet()">Connect Wallet</button>
+<button class="secondary" id="walletBtn" onclick="connectWallet()">Connect Verifier Wallet</button>
 <button id="createBtn" onclick="createProof()" disabled>Create Proof on Base</button>
+<div class="muted">Write access is intentionally restricted to the MVP verifier wallet. Verification below is public and read-only.</div>
 <div id="createError" class="error"></div><div id="createOk" class="ok"></div>
 </div>
 </section>
 
 <section class="panel">
+<h2>Verify proof</h2>
+<p class="lead">Read a proof directly from the Base Sepolia registry. No wallet connection required.</p>
 <label>Proof ID</label>
 <input id="proofId" value="0x0449c4c761ed0db4f7abd36cba758e51cb725f534253f0be545b65dd1a5d88a2">
 <button onclick="verifyProof()">Verify on Base</button>
@@ -61,7 +82,7 @@ button{width:100%;margin-top:14px;background:#1557ff;color:#fff;border:0;padding
 <div id="verifyStatus" class="status">
 <div class="pill">✓ VERIFIED ON BASE</div>
 <div class="grid">
-<div class="item wide"><span>Proof ID</span><strong id="vProof"></strong></div>
+<div class="item wide"><span>Proof ID</span><strong id="vProof"></strong><div class="row-actions"><button class="ghost" onclick="copyText('vProof',this)">Copy proof ID</button></div></div>
 <div class="item"><span>Subject</span><strong id="vSubject"></strong></div>
 <div class="item"><span>Status</span><strong id="vStatus"></strong></div>
 <div class="item wide"><span>Evidence Hash</span><strong id="vEvidence"></strong></div>
@@ -69,10 +90,25 @@ button{width:100%;margin-top:14px;background:#1557ff;color:#fff;border:0;padding
 <div class="item"><span>Created</span><strong id="vCreated"></strong></div>
 <div class="item"><span>Network</span><strong>Base Sepolia</strong></div>
 </div>
-<div class="muted">Contract: <a target="_blank" href="https://sepolia.basescan.org/address/0x0329a4ED3e098EE7bb5AbEda6f509dE41F9cfC10">0x0329...fC10</a></div>
+<div class="row-actions">
+  <a target="_blank" href="https://sepolia.basescan.org/address/0x0329a4ED3e098EE7bb5AbEda6f509dE41F9cfC10">View registry ↗</a>
+</div>
 </div>
 </section>
-<div class="footer">Base Proof MVP · Evidence before reputation.</div>
+
+<section class="panel" id="how">
+<h2>How it works</h2>
+<p class="lead">Evidence first. Reputation later.</p>
+<div class="steps">
+  <div class="step"><div class="n">1</div><b>Collect</b><span>Read public PR metadata, commits, reviews, and CI checks.</span></div>
+  <div class="step"><div class="n">2</div><b>Canonicalize</b><span>Recursively sort object keys while preserving array order.</span></div>
+  <div class="step"><div class="n">3</div><b>Hash</b><span>Generate a Keccak-256 evidence hash and deterministic source ID.</span></div>
+  <div class="step"><div class="n">4</div><b>Anchor</b><span>Register the evidence snapshot in BaseProofRegistry on Base.</span></div>
+</div>
+<div class="muted">A proof shows that a verifier anchored a specific evidence snapshot. It is not an automatic quality score or a claim that GitHub itself attested the proof.</div>
+</section>
+
+<div class="footer">Base Proof MVP · Evidence before reputation · <a target="_blank" href="https://github.com/huklaa/base-proof">Open source</a></div>
 </main>
 
 <script>
@@ -86,6 +122,11 @@ const ABI=[
 ];
 let latestAnalysis=null, walletSigner=null, walletAddress=null;
 
+async function copyText(id,btn){
+  const value=document.getElementById(id).innerText;
+  try{await navigator.clipboard.writeText(value);const old=btn.innerText;btn.innerText="Copied ✓";setTimeout(()=>btn.innerText=old,1200)}
+  catch{alert(value)}
+}
 function canonicalJson(v){
  if(Array.isArray(v)) return "["+v.map(canonicalJson).join(",")+"]";
  if(v&&typeof v==="object") return "{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+canonicalJson(v[k])).join(",")+"}";
@@ -130,6 +171,7 @@ async function analyzePR(){
   document.getElementById("aDeletions").innerText="-"+pr.deletions;
   document.getElementById("aEvidence").innerText=evidenceHash;
   document.getElementById("aSource").innerText=sourceId;
+  document.getElementById("aPrLink").href=pr.html_url;
   status.style.display="block";
   refreshCreateState();
  }catch(e){err.innerText=e.message||String(e);err.style.display="block";}
@@ -168,7 +210,7 @@ async function createProof(){
   const proofId=ethers.keccak256(coder.encode(["address","bytes32","bytes32","uint256"],[walletAddress,latestAnalysis.sourceId,latestAnalysis.evidenceHash,CHAIN_ID]));
   const existing=await c.proofs(proofId);
   if(existing.createdAt!==0n){
-   document.getElementById("proofId").value=proofId;ok.innerText="Proof already exists: "+proofId;ok.style.display="block";await verifyProof();return;
+   document.getElementById("proofId").value=proofId;ok.innerText="Proof already exists: "+proofId;ok.style.display="block";await verifyProof();document.getElementById("proofId").scrollIntoView({behavior:"smooth",block:"center"});return;
   }
   btn.disabled=true;btn.innerText="Confirm in wallet...";
   const tx=await c.registerProof(walletAddress,latestAnalysis.sourceId,latestAnalysis.evidenceHash);
@@ -177,6 +219,7 @@ async function createProof(){
   document.getElementById("proofId").value=proofId;
   ok.innerHTML='✓ Proof created · <a target="_blank" href="https://sepolia.basescan.org/tx/'+tx.hash+'">View transaction</a>';ok.style.display="block";
   await verifyProof();
+  document.getElementById("proofId").scrollIntoView({behavior:"smooth",block:"center"});
  }catch(e){err.innerText=e.shortMessage||e.message||String(e);err.style.display="block";}
  finally{btn.innerText="Create Proof on Base";refreshCreateState();}
 }
