@@ -179,6 +179,25 @@ http://127.0.0.1:8080
 
 A wallet-enabled browser is required only for proof registration. Public proof verification is read-only.
 
+
+## Challenge / dispute protocol (V2)
+
+V2 is implemented in [contracts/BaseProofRegistryV2.sol](contracts/BaseProofRegistryV2.sol).
+
+It adds:
+
+- permissionless `openChallenge(proofId, reasonHash)`
+- one active unresolved challenge per proof
+- deterministic challenge IDs
+- explicit `Open / Upheld / Rejected` states
+- owner resolution for the MVP
+- automatic proof revocation when a challenge is upheld
+- permanent challenge and resolution events
+
+The full lifecycle and trust assumptions are documented in [docs/DISPUTES.md](docs/DISPUTES.md).
+
+**Deployment status:** V2 source and deployment tooling are ready; the existing public demo remains on the original Base Sepolia registry until the V2 deployment is signed and its address is wired into the UI.
+
 ## Roadmap
 
 - immutable/content-addressed evidence bundles
