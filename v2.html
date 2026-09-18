@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Base Proof V2 — Challenges & Disputes</title>
+<meta name="description" content="Base Proof V2 challenge and dispute interface on Base Sepolia.">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+<style>
+:root{--bg:#030711;--panel:rgba(10,18,38,.88);--card:#08101f;--line:rgba(255,255,255,.09);--blue:#1557ff;--muted:#91a0c5;--green:#67e59d;--red:#ff8f8f;--yellow:#f5c76a}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:radial-gradient(circle at top,#173a93 0,#09142f 34%,#030711 76%);color:#fff;min-height:100vh}
+.wrap{width:min(960px,92%);margin:auto;padding:42px 0 80px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center}.brand{font-size:14px;letter-spacing:3px;color:#aab7d6;text-transform:uppercase}.top a{color:#9cb5ff;text-decoration:none;font-size:13px}
+h1{font-size:clamp(38px,8vw,68px);line-height:.98;margin:22px 0 12px;letter-spacing:-2px}.tag{color:#aab7d6;font-size:18px;line-height:1.5;max-width:760px}
+.panel{margin-top:30px;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 20px 70px rgba(0,0,0,.35)}.panel h2{margin:0 0 8px;font-size:22px}.lead{margin:0 0 20px;color:#8997b6;font-size:14px;line-height:1.5}
+label{display:block;color:var(--muted);font-size:13px;margin:14px 0 8px}input,textarea{width:100%;border:1px solid #273454;background:var(--card);color:#fff;padding:14px 15px;border-radius:12px;font-size:14px;outline:none}textarea{min-height:110px;resize:vertical}input:focus,textarea:focus{border-color:#4f7dff}
+button{width:100%;margin-top:14px;background:var(--blue);color:#fff;border:0;padding:14px;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer}button.secondary{background:#0b1732;border:1px solid #2b3b62}button.danger{background:#7d2730}button.warn{background:#715719}button:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.wide{grid-column:1/-1}.item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;min-width:0}.item span{display:block;color:#8997b6;font-size:12px;margin-bottom:7px}.item strong{display:block;overflow-wrap:anywhere;font-size:14px}
+.status{display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)}.pill{display:inline-block;padding:7px 11px;border-radius:999px;background:rgba(31,187,104,.12);border:1px solid rgba(68,219,129,.25);color:var(--green);font-size:12px;font-weight:800;margin-bottom:16px}.pill.yellow{color:var(--yellow);background:rgba(245,199,106,.09);border-color:rgba(245,199,106,.22)}.pill.red{color:var(--red);background:rgba(255,80,80,.09);border-color:rgba(255,80,80,.2)}
+.err{display:none;color:#ff9a9a;margin-top:14px;line-height:1.5}.ok{display:none;color:var(--green);margin-top:14px;line-height:1.5}.note{color:#8997b6;font-size:12px;line-height:1.55;margin-top:14px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.meta a{color:#8faeff;text-decoration:none;font-size:12px;border:1px solid var(--line);padding:8px 10px;border-radius:9px}
+@media(max-width:700px){.grid,.actions{grid-template-columns:1fr}.wide{grid-column:auto}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<div class="top">
+  <div class="brand">Base Proof V2</div>
+  <div>
+    <a href="/">← Base Proof V1</a>
+    &nbsp;·&nbsp;
+    <a target="_blank" href="https://github.com/huklaa/base-proof/blob/main/docs/DISPUTES.md">Protocol docs</a>
+  </div>
+</div>
+
+<h1>Challenge the proof.<br>Preserve the history.</h1>
+<div class="tag">V2 adds a dispute lifecycle: anyone can challenge an active proof; the MVP owner can uphold or reject the dispute. Upheld challenges revoke the proof without deleting history.</div>
+
+<section class="panel">
+<h2>V2 deployment</h2>
+<div class="grid">
+  <div class="item wide"><span>Contract</span><strong>0x1a6F58F1c98f2ECA265D3B3A0Fb3ED74273765De</strong></div>
+  <div class="item"><span>Network</span><strong>Base Sepolia</strong></div>
+  <div class="item"><span>Owner / initial verifier</span><strong>0xA6193caA92B0c42DaB3d823ccEd7b2426Ba7e627</strong></div>
+</div>
+<div class="meta">
+  <a target="_blank" href="https://sepolia.basescan.org/address/0x1a6F58F1c98f2ECA265D3B3A0Fb3ED74273765De">View contract ↗</a>
+  <a target="_blank" href="https://sepolia.basescan.org/tx/0xa72c71848f700516cfbddeab842fd24decab13d1562fd50bcce8e4e7f2ecab5a">Deployment tx ↗</a>
+</div>
+</section>
+
+<section class="panel">
+<h2>Wallet</h2>
+<p class="lead">Any wallet can open a challenge. Only the owner/verifier wallet can register proofs or resolve disputes in this MVP.</p>
+<button class="secondary" id="connectBtn" onclick="connectWallet()">Connect wallet</button>
+<div id="walletInfo" class="ok"></div>
+<div id="walletError" class="err"></div>
+</section>
+
+<section class="panel">
+<h2>Register a V2 proof</h2>
+<p class="lead">Analyze a public GitHub pull request and anchor the canonical evidence snapshot in the V2 registry.</p>
+<label>GitHub Pull Request</label>
+<input id="prUrl" value="https://github.com/base/base/pull/4650">
+<button id="analyzeBtn" onclick="analyzePR()">Analyze contribution</button>
+<div id="analysisError" class="err"></div>
+<div id="analysisStatus" class="status">
+<div class="pill">✓ CANONICAL EVIDENCE READY</div>
+<div class="grid">
+  <div class="item wide"><span>PR</span><strong id="aTitle"></strong></div>
+  <div class="item"><span>Author</span><strong id="aAuthor"></strong></div>
+  <div class="item"><span>Checks</span><strong id="aChecks"></strong></div>
+  <div class="item wide"><span>Evidence hash</span><strong id="aEvidence"></strong></div>
+  <div class="item wide"><span>Source ID</span><strong id="aSource"></strong></div>
+</div>
+<button id="registerBtn" onclick="registerProof()" disabled>Register V2 Proof</button>
+<div id="registerOk" class="ok"></div>
+<div id="registerError" class="err"></div>
+</div>
+</section>
+
+<section class="panel">
+<h2>Inspect proof</h2>
+<p class="lead">Read the V2 proof and its current active challenge, if one exists.</p>
+<label>Proof ID</label>
+<input id="proofId" placeholder="0x...">
+<button onclick="inspectProof()">Inspect V2 Proof</button>
+<div id="proofError" class="err"></div>
+<div id="proofStatus" class="status">
+<div id="proofPill" class="pill">PROOF</div>
+<div class="grid">
+  <div class="item wide"><span>Proof ID</span><strong id="pId"></strong></div>
+  <div class="item"><span>Subject</span><strong id="pSubject"></strong></div>
+  <div class="item"><span>Status</span><strong id="pStatus"></strong></div>
+  <div class="item wide"><span>Evidence hash</span><strong id="pEvidence"></strong></div>
+  <div class="item wide"><span>Source ID</span><strong id="pSource"></strong></div>
+  <div class="item wide"><span>Active challenge</span><strong id="pChallenge"></strong></div>
+</div>
+</div>
+</section>
+
+<section class="panel">
+<h2>Open challenge</h2>
+<p class="lead">Anyone can challenge an active V2 proof. The full reason stays offchain; only its Keccak-256 hash is stored onchain.</p>
+<label>Proof ID</label>
+<input id="challengeProofId" placeholder="0x...">
+<label>Challenge reason / evidence statement</label>
+<textarea id="challengeReason" placeholder="Example: The evidence snapshot attributes this contribution to the wrong subject because..."></textarea>
+<button onclick="openChallenge()">Open Challenge</button>
+<div id="challengeOk" class="ok"></div>
+<div id="challengeError" class="err"></div>
+</section>
+
+<section class="panel">
+<h2>Inspect challenge</h2>
+<label>Challenge ID</label>
+<input id="challengeId" placeholder="0x...">
+<button onclick="inspectChallenge()">Inspect Challenge</button>
+<div id="inspectChallengeError" class="err"></div>
+<div id="challengeStatus" class="status">
+<div id="challengePill" class="pill yellow">CHALLENGE</div>
+<div class="grid">
+  <div class="item wide"><span>Challenge ID</span><strong id="cId"></strong></div>
+  <div class="item wide"><span>Proof ID</span><strong id="cProof"></strong></div>
+  <div class="item"><span>Challenger</span><strong id="cChallenger"></strong></div>
+  <div class="item"><span>Status</span><strong id="cStatus"></strong></div>
+  <div class="item wide"><span>Reason hash</span><strong id="cReason"></strong></div>
+  <div class="item"><span>Opened</span><strong id="cCreated"></strong></div>
+  <div class="item"><span>Resolved</span><strong id="cResolved"></strong></div>
+</div>
+<div class="actions">
+  <button class="warn" id="rejectBtn" onclick="resolveChallenge(false)" disabled>Reject challenge</button>
+  <button class="danger" id="upholdBtn" onclick="resolveChallenge(true)" disabled>Uphold & revoke proof</button>
+</div>
+<div id="resolveOk" class="ok"></div>
+<div id="resolveError" class="err"></div>
+</div>
+</section>
+
+<div class="note">MVP dispute resolution is owner-controlled. Before production/mainnet use, add decentralized resolution, anti-spam economics, complete evidence persistence, and an audit.</div>
+</main>
+
+<script>
+const CONTRACT="0x1a6F58F1c98f2ECA265D3B3A0Fb3ED74273765De";
+const RPC="https://sepolia.base.org";
+const CHAIN_ID=84532n;
+const OWNER="0xA6193caA92B0c42DaB3d823ccEd7b2426Ba7e627".toLowerCase();
+const ZERO32="0x"+"0".repeat(64);
+const ABI=[
+ "function owner() view returns(address)",
+ "function verifiers(address) view returns(bool)",
+ "function computeProofId(address,bytes32,bytes32) view returns(bytes32)",
+ "function registerProof(address,bytes32,bytes32) returns(bytes32)",
+ "function proofs(bytes32) view returns(address subject,bytes32 sourceId,bytes32 evidenceHash,uint64 createdAt,bool revoked)",
+ "function activeChallengeByProof(bytes32) view returns(bytes32)",
+ "function openChallenge(bytes32,bytes32) returns(bytes32)",
+ "function challenges(bytes32) view returns(bytes32 proofId,address challenger,bytes32 reasonHash,uint64 createdAt,uint64 resolvedAt,uint8 status)",
+ "function resolveChallenge(bytes32,bool)"
+];
+let signer=null,walletAddress=null,latestAnalysis=null;
+const readProvider=new ethers.JsonRpcProvider(RPC);
+const readContract=new ethers.Contract(CONTRACT,ABI,readProvider);
+
+function msg(id,text,show=true){const e=document.getElementById(id);e.innerText=text;e.style.display=show?"block":"none"}
+function clear(...ids){ids.forEach(id=>document.getElementById(id).style.display="none")}
+function canonicalJson(v){
+ if(Array.isArray(v))return"["+v.map(canonicalJson).join(",")+"]";
+ if(v&&typeof v==="object")return"{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+canonicalJson(v[k])).join(",")+"}";
+ return JSON.stringify(v)
+}
+function parsePrUrl(url){
+ const m=url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/);
+ if(!m)throw new Error("Enter a valid GitHub PR URL.");
+ return{owner:m[1],repo:m[2],number:Number(m[3])}
+}
+async function gh(path){
+ const r=await fetch("https://api.github.com"+path,{headers:{"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}});
+ if(!r.ok){let j={};try{j=await r.json()}catch{}throw new Error(j.message||("GitHub API "+r.status))}
+ return r.json()
+}
+async function ensureBase(){
+ await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x14a34"}]}).catch(async e=>{
+  if(e.code===4902)await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:"0x14a34",chainName:"Base Sepolia",nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18},rpcUrls:[RPC],blockExplorerUrls:["https://sepolia.basescan.org"]}]});
+  else throw e
+ })
+}
+async function connectWallet(){
+ clear("walletError");
+ try{
+  if(!window.ethereum)throw new Error("No injected wallet found. Use a wallet-enabled browser.");
+  await ensureBase();
+  const p=new ethers.BrowserProvider(window.ethereum);
+  await p.send("eth_requestAccounts",[]);
+  signer=await p.getSigner();walletAddress=await signer.getAddress();
+  document.getElementById("connectBtn").innerText="Wallet: "+walletAddress.slice(0,6)+"..."+walletAddress.slice(-4);
+  const verifier=await readContract.verifiers(walletAddress);
+  msg("walletInfo","Connected · "+(verifier?"Verifier":"Challenger")+" · "+walletAddress);
+  refreshPermissions();
+ }catch(e){msg("walletError",e.shortMessage||e.message||String(e))}
+}
+function refreshPermissions(){
+ const isOwner=walletAddress&&walletAddress.toLowerCase()===OWNER;
+ document.getElementById("registerBtn").disabled=!(latestAnalysis&&isOwner);
+ document.getElementById("rejectBtn").disabled=!isOwner;
+ document.getElementById("upholdBtn").disabled=!isOwner;
+}
+async function analyzePR(){
+ clear("analysisError");document.getElementById("analysisStatus").style.display="none";
+ const btn=document.getElementById("analyzeBtn");btn.disabled=true;btn.innerText="Analyzing...";
+ try{
+  const{owner,repo,number}=parsePrUrl(document.getElementById("prUrl").value.trim());
+  const pr=await gh(`/repos/${owner}/${repo}/pulls/${number}`);
+  const[commits,reviews,checks]=await Promise.all([
+   gh(`/repos/${owner}/${repo}/pulls/${number}/commits?per_page=100`),
+   gh(`/repos/${owner}/${repo}/pulls/${number}/reviews?per_page=100`),
+   gh(`/repos/${owner}/${repo}/commits/${pr.head.sha}/check-runs?per_page=100`)
+  ]);
+  const checkRuns=(checks.check_runs||[]).map(c=>({name:c.name,status:c.status,conclusion:c.conclusion}));
+  const evidence={version:1,source:"github",repository:`${owner}/${repo}`,pullRequest:{number:pr.number,url:pr.html_url,title:pr.title,author:pr.user?.login??null,state:pr.state,merged:pr.merged??false,headSha:pr.head.sha,baseSha:pr.base.sha,additions:pr.additions,deletions:pr.deletions,changedFiles:pr.changed_files,createdAt:pr.created_at,updatedAt:pr.updated_at,mergedAt:pr.merged_at},commits:commits.map(c=>({sha:c.sha,author:c.author?.login??null,message:c.commit.message,verified:c.commit.verification?.verified??false})),reviews:reviews.map(r=>({user:r.user?.login??null,state:r.state,submittedAt:r.submitted_at??null})),checks:checkRuns};
+  const evidenceHash=ethers.keccak256(ethers.toUtf8Bytes(canonicalJson(evidence)));
+  const sourceId=ethers.keccak256(ethers.toUtf8Bytes(`github:${owner}/${repo}#${number}`));
+  latestAnalysis={evidenceHash,sourceId};
+  document.getElementById("aTitle").innerText=`#${pr.number} — ${pr.title}`;
+  document.getElementById("aAuthor").innerText=pr.user?.login??"Unknown";
+  document.getElementById("aChecks").innerText=`${checkRuns.filter(c=>c.conclusion==="success").length}/${checkRuns.length} successful`;
+  document.getElementById("aEvidence").innerText=evidenceHash;
+  document.getElementById("aSource").innerText=sourceId;
+  document.getElementById("analysisStatus").style.display="block";
+  refreshPermissions();
+ }catch(e){msg("analysisError",e.message||String(e))}
+ finally{btn.disabled=false;btn.innerText="Analyze contribution"}
+}
+async function registerProof(){
+ clear("registerError","registerOk");
+ try{
+  if(!signer||!walletAddress)throw new Error("Connect the owner/verifier wallet first.");
+  if(walletAddress.toLowerCase()!==OWNER)throw new Error("Only the MVP owner/verifier can register V2 proofs.");
+  if(!latestAnalysis)throw new Error("Analyze a PR first.");
+  const c=new ethers.Contract(CONTRACT,ABI,signer);
+  const proofId=await c.computeProofId(walletAddress,latestAnalysis.sourceId,latestAnalysis.evidenceHash);
+  const existing=await readContract.proofs(proofId);
+  if(existing.createdAt!==0n){
+   document.getElementById("proofId").value=proofId;document.getElementById("challengeProofId").value=proofId;
+   msg("registerOk","Proof already exists: "+proofId);await inspectProof();return
+  }
+  const tx=await c.registerProof(walletAddress,latestAnalysis.sourceId,latestAnalysis.evidenceHash);
+  msg("registerOk","Transaction sent: "+tx.hash);
+  await tx.wait();
+  document.getElementById("proofId").value=proofId;document.getElementById("challengeProofId").value=proofId;
+  msg("registerOk","✓ V2 proof registered: "+proofId+" · tx "+tx.hash);
+  await inspectProof();
+ }catch(e){msg("registerError",e.shortMessage||e.message||String(e))}
+}
+async function inspectProof(){
+ clear("proofError");document.getElementById("proofStatus").style.display="none";
+ try{
+  const id=document.getElementById("proofId").value.trim();
+  if(!ethers.isHexString(id,32))throw new Error("Invalid proof ID.");
+  const p=await readContract.proofs(id);
+  if(p.createdAt===0n)throw new Error("Proof not found in V2.");
+  const active=await readContract.activeChallengeByProof(id);
+  document.getElementById("pId").innerText=id;document.getElementById("pSubject").innerText=p.subject;document.getElementById("pStatus").innerText=p.revoked?"Revoked":"Active";document.getElementById("pEvidence").innerText=p.evidenceHash;document.getElementById("pSource").innerText=p.sourceId;document.getElementById("pChallenge").innerText=active===ZERO32?"None":active;
+  const pill=document.getElementById("proofPill");pill.innerText=p.revoked?"REVOKED":"ACTIVE PROOF";pill.className=p.revoked?"pill red":"pill";
+  document.getElementById("proofStatus").style.display="block";
+  document.getElementById("challengeProofId").value=id;
+  if(active!==ZERO32)document.getElementById("challengeId").value=active;
+ }catch(e){msg("proofError",e.message||String(e))}
+}
+async function openChallenge(){
+ clear("challengeError","challengeOk");
+ try{
+  if(!signer||!walletAddress)throw new Error("Connect a wallet first.");
+  const proofId=document.getElementById("challengeProofId").value.trim();
+  const reason=document.getElementById("challengeReason").value.trim();
+  if(!ethers.isHexString(proofId,32))throw new Error("Invalid proof ID.");
+  if(reason.length<10)throw new Error("Give a meaningful challenge reason (at least 10 characters).");
+  const reasonHash=ethers.keccak256(ethers.toUtf8Bytes(reason));
+  const coder=ethers.AbiCoder.defaultAbiCoder();
+  const challengeId=ethers.keccak256(coder.encode(["bytes32","address","bytes32","uint256"],[proofId,walletAddress,reasonHash,CHAIN_ID]));
+  const c=new ethers.Contract(CONTRACT,ABI,signer);
+  const tx=await c.openChallenge(proofId,reasonHash);
+  msg("challengeOk","Transaction sent: "+tx.hash);
+  await tx.wait();
+  document.getElementById("challengeId").value=challengeId;
+  msg("challengeOk","✓ Challenge opened: "+challengeId+" · reason hash "+reasonHash);
+  await inspectChallenge();await inspectProof();
+ }catch(e){msg("challengeError",e.shortMessage||e.message||String(e))}
+}
+function challengeStatusName(v){return["None","Open","Upheld","Rejected"][Number(v)]||("Unknown("+v+")")}
+async function inspectChallenge(){
+ clear("inspectChallengeError");document.getElementById("challengeStatus").style.display="none";
+ try{
+  const id=document.getElementById("challengeId").value.trim();
+  if(!ethers.isHexString(id,32))throw new Error("Invalid challenge ID.");
+  const c=await readContract.challenges(id);
+  if(c.createdAt===0n)throw new Error("Challenge not found.");
+  const status=challengeStatusName(c.status);
+  document.getElementById("cId").innerText=id;document.getElementById("cProof").innerText=c.proofId;document.getElementById("cChallenger").innerText=c.challenger;document.getElementById("cStatus").innerText=status;document.getElementById("cReason").innerText=c.reasonHash;document.getElementById("cCreated").innerText=new Date(Number(c.createdAt)*1000).toLocaleString();document.getElementById("cResolved").innerText=c.resolvedAt===0n?"—":new Date(Number(c.resolvedAt)*1000).toLocaleString();
+  const pill=document.getElementById("challengePill");pill.innerText=status.toUpperCase();pill.className=status==="Open"?"pill yellow":status==="Upheld"?"pill red":"pill";
+  document.getElementById("challengeStatus").style.display="block";
+  document.getElementById("proofId").value=c.proofId;
+  refreshPermissions();
+ }catch(e){msg("inspectChallengeError",e.message||String(e))}
+}
+async function resolveChallenge(uphold){
+ clear("resolveError","resolveOk");
+ try{
+  if(!signer||!walletAddress)throw new Error("Connect the owner wallet first.");
+  if(walletAddress.toLowerCase()!==OWNER)throw new Error("Only the V2 owner can resolve challenges.");
+  const id=document.getElementById("challengeId").value.trim();
+  if(!ethers.isHexString(id,32))throw new Error("Invalid challenge ID.");
+  const c=new ethers.Contract(CONTRACT,ABI,signer);
+  const tx=await c.resolveChallenge(id,uphold);
+  msg("resolveOk","Transaction sent: "+tx.hash);
+  await tx.wait();
+  msg("resolveOk",uphold?"✓ Challenge upheld; proof revoked.":"✓ Challenge rejected; proof remains active.");
+  await inspectChallenge();await inspectProof();
+ }catch(e){msg("resolveError",e.shortMessage||e.message||String(e))}
+}
+</script>
+</body>
+</html>
