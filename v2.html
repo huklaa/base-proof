@@ -17,7 +17,18 @@ button{width:100%;margin-top:14px;background:var(--blue);color:#fff;border:0;pad
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.wide{grid-column:1/-1}.item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;min-width:0}.item span{display:block;color:#8997b6;font-size:12px;margin-bottom:7px}.item strong{display:block;overflow-wrap:anywhere;font-size:14px}
 .status{display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)}.pill{display:inline-block;padding:7px 11px;border-radius:999px;background:rgba(31,187,104,.12);border:1px solid rgba(68,219,129,.25);color:var(--green);font-size:12px;font-weight:800;margin-bottom:16px}.pill.yellow{color:var(--yellow);background:rgba(245,199,106,.09);border-color:rgba(245,199,106,.22)}.pill.red{color:var(--red);background:rgba(255,80,80,.09);border-color:rgba(255,80,80,.2)}
 .err{display:none;color:#ff9a9a;margin-top:14px;line-height:1.5}.ok{display:none;color:var(--green);margin-top:14px;line-height:1.5}.note{color:#8997b6;font-size:12px;line-height:1.55;margin-top:14px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.meta a{color:#8faeff;text-decoration:none;font-size:12px;border:1px solid var(--line);padding:8px 10px;border-radius:9px}
-@media(max-width:700px){.grid,.actions{grid-template-columns:1fr}.wide{grid-column:auto}.top{align-items:flex-start;flex-direction:column}}
+@media(max-width:700px){
+ .grid,.actions{grid-template-columns:1fr}
+ .wide{grid-column:auto}
+ .top{align-items:flex-start;flex-direction:column}
+ .panel{padding:18px;margin-top:22px}
+ .panel h2{font-size:20px}
+ .lead{margin-bottom:14px}
+ input,textarea{padding:13px 14px}
+ button{padding:13px;margin-top:12px}
+ .status{margin-top:16px;padding-top:16px}
+ .item{padding:13px}
+}
 </style>
 </head>
 <body>
@@ -50,9 +61,15 @@ button{width:100%;margin-top:14px;background:var(--blue);color:#fff;border:0;pad
 <section class="panel">
 <h2>Wallet</h2>
 <p class="lead">Any wallet can open a challenge. Only the owner/verifier wallet can register proofs or resolve disputes in this MVP.</p>
-<button id="metaMaskConnectBtn" onclick="connectMetaMaskMobile()">Connect MetaMask</button>
-<button class="secondary" id="connectBtn" onclick="connectWallet()">Browser / Extension wallet</button>
-<div class="note">MetaMask Connect works from a normal mobile browser using the official MetaMask app deeplink/relay flow. The second button is for injected wallets such as desktop extensions.</div>
+<div id="walletConnectArea">
+  <button id="metaMaskConnectBtn" onclick="connectMetaMaskMobile()">Connect MetaMask</button>
+  <button class="secondary" id="connectBtn" onclick="connectWallet()">Browser / Extension wallet</button>
+  <div class="note">MetaMask Connect works from a normal mobile browser. Use the second option only for injected browser/extension wallets.</div>
+</div>
+<div id="walletConnectedCard" class="item" style="display:none;margin-top:14px">
+  <span>Connected wallet</span>
+  <strong id="walletConnectedText"></strong>
+</div>
 <div id="walletInfo" class="ok"></div>
 <div id="walletError" class="err"></div>
 </section>
@@ -195,16 +212,22 @@ async function switchProviderToBase(provider){
 }
 
 async function applyWalletProvider(provider,label){
+ if(walletAddress)return;
  await switchProviderToBase(provider);
  const p=new ethers.BrowserProvider(provider);
  const accounts=await p.send("eth_requestAccounts",[]);
  if(!accounts?.length)throw new Error("Wallet returned no account.");
  signer=await p.getSigner();
  walletAddress=await signer.getAddress();
- document.getElementById("connectBtn").innerText="Wallet: "+walletAddress.slice(0,6)+"..."+walletAddress.slice(-4);
- document.getElementById("metaMaskConnectBtn").innerText=label==="MetaMask"?"MetaMask: "+walletAddress.slice(0,6)+"..."+walletAddress.slice(-4):"Connect MetaMask";
  const verifier=await readContract.verifiers(walletAddress);
- msg("walletInfo","Connected via "+label+" · "+(verifier?"Verifier":"Challenger")+" · "+walletAddress);
+ const role=verifier?"Verifier":"Challenger";
+
+ document.getElementById("walletConnectArea").style.display="none";
+ document.getElementById("walletConnectedCard").style.display="block";
+ document.getElementById("walletConnectedText").innerText=
+   label+" · "+role+" · "+walletAddress.slice(0,6)+"..."+walletAddress.slice(-4);
+
+ msg("walletInfo","Connected · "+walletAddress);
  refreshPermissions();
 }
 
@@ -212,6 +235,7 @@ window.applyWalletProvider=applyWalletProvider;
 
 async function connectWallet(){
  clear("walletError");
+ if(walletAddress)return;
  const btn=document.getElementById("connectBtn");
  if(btn.dataset.pending==="1")return;
  btn.dataset.pending="1";btn.disabled=true;btn.innerText="Connecting...";
@@ -357,6 +381,7 @@ let mmPending=false;
 window.connectMetaMaskMobile=async function(){
  const btn=document.getElementById("metaMaskConnectBtn");
  clear("walletError");
+ if(walletAddress)return;
  if(mmPending)return;
  mmPending=true;
  btn.disabled=true;
