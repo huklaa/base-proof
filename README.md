@@ -188,6 +188,18 @@ The canonical GitHub contribution snapshot has also been registered in V2.
 - Registration tx: `0x9c1524ae010da5fcdf00049ae9759f8be5432618a497241c22775339ca66ea01`
 - Explorer: https://sepolia.basescan.org/tx/0x9c1524ae010da5fcdf00049ae9759f8be5432618a497241c22775339ca66ea01
 
+## Live V2 dispute test
+
+The V2 challenge lifecycle has been exercised on Base Sepolia with a real proof.
+
+- Challenge ID: `0x8e34f1e88fb91b5ebdf47df8f76ed23053b57ffa3689af14f1a2f4e09d9e7be9`
+- Resolution tx: `0x735b5d3d657ba7b982a4b0ce6b6e8d15c3a159411766540bf818956a88b9ae91`
+- Final challenge status: `Rejected (3)`
+- Proof revoked: `false`
+- Active challenge pointer after resolution: zero hash
+
+[View resolution transaction](https://sepolia.basescan.org/tx/0x735b5d3d657ba7b982a4b0ce6b6e8d15c3a159411766540bf818956a88b9ae91)
+
 ## Challenge / dispute protocol (V2)
 
 V2 is implemented in [contracts/BaseProofRegistryV2.sol](contracts/BaseProofRegistryV2.sol).
