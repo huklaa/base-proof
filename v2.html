@@ -50,7 +50,9 @@ button{width:100%;margin-top:14px;background:var(--blue);color:#fff;border:0;pad
 <section class="panel">
 <h2>Wallet</h2>
 <p class="lead">Any wallet can open a challenge. Only the owner/verifier wallet can register proofs or resolve disputes in this MVP.</p>
-<button class="secondary" id="connectBtn" onclick="connectWallet()">Connect wallet</button>
+<button id="metaMaskConnectBtn" onclick="connectMetaMaskMobile()">Connect MetaMask</button>
+<button class="secondary" id="connectBtn" onclick="connectWallet()">Browser / Extension wallet</button>
+<div class="note">MetaMask Connect works from a normal mobile browser using the official MetaMask app deeplink/relay flow. The second button is for injected wallets such as desktop extensions.</div>
 <div id="walletInfo" class="ok"></div>
 <div id="walletError" class="err"></div>
 </section>
@@ -176,25 +178,55 @@ async function gh(path){
  if(!r.ok){let j={};try{j=await r.json()}catch{}throw new Error(j.message||("GitHub API "+r.status))}
  return r.json()
 }
-async function ensureBase(){
- await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x14a34"}]}).catch(async e=>{
-  if(e.code===4902)await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:"0x14a34",chainName:"Base Sepolia",nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18},rpcUrls:[RPC],blockExplorerUrls:["https://sepolia.basescan.org"]}]});
-  else throw e
- })
+async function switchProviderToBase(provider){
+ try{
+  await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x14a34"}]});
+ }catch(e){
+  if(e.code===4902){
+   await provider.request({method:"wallet_addEthereumChain",params:[{
+    chainId:"0x14a34",
+    chainName:"Base Sepolia",
+    nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18},
+    rpcUrls:[RPC],
+    blockExplorerUrls:["https://sepolia.basescan.org"]
+   }]});
+  }else throw e;
+ }
 }
+
+async function applyWalletProvider(provider,label){
+ await switchProviderToBase(provider);
+ const p=new ethers.BrowserProvider(provider);
+ const accounts=await p.send("eth_requestAccounts",[]);
+ if(!accounts?.length)throw new Error("Wallet returned no account.");
+ signer=await p.getSigner();
+ walletAddress=await signer.getAddress();
+ document.getElementById("connectBtn").innerText="Wallet: "+walletAddress.slice(0,6)+"..."+walletAddress.slice(-4);
+ document.getElementById("metaMaskConnectBtn").innerText=label==="MetaMask"?"MetaMask: "+walletAddress.slice(0,6)+"..."+walletAddress.slice(-4):"Connect MetaMask";
+ const verifier=await readContract.verifiers(walletAddress);
+ msg("walletInfo","Connected via "+label+" · "+(verifier?"Verifier":"Challenger")+" · "+walletAddress);
+ refreshPermissions();
+}
+
+window.applyWalletProvider=applyWalletProvider;
+
 async function connectWallet(){
  clear("walletError");
+ const btn=document.getElementById("connectBtn");
+ if(btn.dataset.pending==="1")return;
+ btn.dataset.pending="1";btn.disabled=true;btn.innerText="Connecting...";
  try{
-  if(!window.ethereum)throw new Error("No injected wallet found. Use a wallet-enabled browser.");
-  await ensureBase();
-  const p=new ethers.BrowserProvider(window.ethereum);
-  await p.send("eth_requestAccounts",[]);
-  signer=await p.getSigner();walletAddress=await signer.getAddress();
-  document.getElementById("connectBtn").innerText="Wallet: "+walletAddress.slice(0,6)+"..."+walletAddress.slice(-4);
-  const verifier=await readContract.verifiers(walletAddress);
-  msg("walletInfo","Connected · "+(verifier?"Verifier":"Challenger")+" · "+walletAddress);
-  refreshPermissions();
- }catch(e){msg("walletError",e.shortMessage||e.message||String(e))}
+  if(!window.ethereum)throw new Error("No injected wallet found. Use Connect MetaMask on mobile, or install/use a browser wallet extension.");
+  await applyWalletProvider(window.ethereum,"Browser wallet");
+ }catch(e){
+  const code=e?.code;
+  if(code===4001)msg("walletError","Connection request was rejected in the wallet.");
+  else if(code===-32002)msg("walletError","A wallet connection request is already pending. Open the wallet and finish or cancel it, then try again.");
+  else msg("walletError",e.shortMessage||e.message||String(e));
+ }finally{
+  btn.dataset.pending="0";btn.disabled=false;
+  if(!walletAddress)btn.innerText="Browser / Extension wallet";
+ }
 }
 function refreshPermissions(){
  const isOwner=walletAddress&&walletAddress.toLowerCase()===OWNER;
@@ -315,6 +347,55 @@ async function resolveChallenge(uphold){
   await inspectChallenge();await inspectProof();
  }catch(e){msg("resolveError",e.shortMessage||e.message||String(e))}
 }
+</script>
+<script type="module">
+import { createEVMClient } from "https://esm.sh/@metamask/connect-evm?bundle";
+
+let mmClient=null;
+let mmPending=false;
+
+window.connectMetaMaskMobile=async function(){
+ const btn=document.getElementById("metaMaskConnectBtn");
+ clear("walletError");
+ if(mmPending)return;
+ mmPending=true;
+ btn.disabled=true;
+ btn.innerText="Opening MetaMask...";
+ try{
+  if(!mmClient){
+   mmClient=await createEVMClient({
+    dapp:{
+     name:"Base Proof",
+     url:"https://base-proof.vercel.app/v2.html"
+    },
+    api:{
+     supportedNetworks:{
+      "0x14a34":"https://sepolia.base.org"
+     }
+    }
+   });
+  }
+
+  const result=await mmClient.connect({
+   chainIds:["0x14a34"]
+  });
+
+  const provider=mmClient.getProvider();
+  if(!provider)throw new Error("MetaMask Connect did not return a provider.");
+
+  await window.applyWalletProvider(provider,"MetaMask");
+
+ }catch(e){
+  const code=e?.code;
+  if(code===4001)msg("walletError","MetaMask connection was rejected.");
+  else if(code===-32002)msg("walletError","A MetaMask connection request is already pending. Complete or cancel it in MetaMask, then try again.");
+  else msg("walletError",e.shortMessage||e.message||String(e));
+ }finally{
+  mmPending=false;
+  btn.disabled=false;
+  if(!walletAddress)btn.innerText="Connect MetaMask";
+ }
+};
 </script>
 </body>
 </html>
