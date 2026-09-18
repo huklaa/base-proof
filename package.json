@@ -1,0 +1,13 @@
+{
+  "name": "base-proof",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile:v2": "node scripts/compile-v2.mjs"
+  },
+  "dependencies": {
+    "ethers": "^6.15.0",
+    "solc": "^0.8.30"
+  }
+}
