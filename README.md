@@ -1,57 +1,114 @@
 # Base Proof
 
-**Prove the work. Not the claim.**
+> **Prove the work. Not the claim.**
 
-Base Proof is a proof-of-work registry for verifiable software contributions. It turns public GitHub pull-request evidence into a deterministic evidence hash and anchors that evidence on Base.
+Base Proof turns public GitHub contribution evidence into a deterministic evidence hash and anchors that snapshot on Base.
 
-## Live MVP
+[Live MVP](https://base-proof-ertekh-1454s-projects.vercel.app) · [Registry on BaseScan](https://sepolia.basescan.org/address/0x0329a4ED3e098EE7bb5AbEda6f509dE41F9cfC10) · [Architecture](docs/ARCHITECTURE.md) · [Evidence schema](docs/EVIDENCE_SCHEMA.md)
 
-Production: https://base-proof-ertekh-1454s-projects.vercel.app
+## Live proof
 
 Network: **Base Sepolia**
 
-Registry contract: `0x0329a4ED3e098EE7bb5AbEda6f509dE41F9cfC10`
+Registry:
 
-Canonical proof example:
+`0x0329a4ED3e098EE7bb5AbEda6f509dE41F9cfC10`
 
-- Source: `github:base/base#4650`
-- Proof ID: `0x0449c4c761ed0db4f7abd36cba758e51cb725f534253f0be545b65dd1a5d88a2`
-- Evidence hash: `0x5083831a139c581a4950c7adba272fadffef4283a5f6219b7e2e822cf6555caa`
+Canonical example:
 
-## What it does
+| Field | Value |
+|---|---|
+| Source | `github:base/base#4650` |
+| Subject | `0xA6193caA92B0c42DaB3d823ccEd7b2426Ba7e627` |
+| Proof ID | `0x0449c4c761ed0db4f7abd36cba758e51cb725f534253f0be545b65dd1a5d88a2` |
+| Evidence hash | `0x5083831a139c581a4950c7adba272fadffef4283a5f6219b7e2e822cf6555caa` |
 
-1. Accepts a public GitHub pull-request URL.
-2. Reads public PR metadata, commits, reviews, and check runs.
-3. Builds a deterministic evidence object.
-4. Canonicalizes that object by recursively sorting object keys.
-5. Computes a Keccak-256 evidence hash.
-6. Computes a source ID from `github:owner/repo#PR`.
-7. Registers the proof on Base Sepolia through the verifier wallet.
-8. Lets anyone independently read the proof from the registry contract.
+[View canonical registration transaction](https://sepolia.basescan.org/tx/0xcb6b1d42c3a024c51941db7fa86498c0dd2983882008ced8c47c97060ac499b1)
 
-## Why
+## Demo flow
 
-A profile can claim that work happened. Base Proof records evidence that can be independently checked.
+```
+GitHub PR URL
+     ↓
+public contribution evidence
+     ↓
+canonical JSON snapshot
+     ↓
+Keccak-256 evidence hash
+     ↓
+verifier registration
+     ↓
+BaseProofRegistry
+     ↓
+public proof verification
+```
 
-The MVP deliberately avoids opaque quality scores. It stores verifiable facts and hashes first; reputation can be derived later by applications with their own rules.
+The current web MVP can:
 
-## Current evidence schema
+1. Analyze a public GitHub pull request.
+2. Read PR metadata, commits, submitted reviews, and CI/check runs.
+3. Produce a deterministic canonical evidence snapshot.
+4. Compute `sourceId` and `evidenceHash`.
+5. Connect the authorized verifier wallet.
+6. Detect an existing proof before sending a duplicate transaction.
+7. Register a new proof on Base Sepolia.
+8. Read any known proof directly from the registry.
 
-The GitHub collector includes:
+## Why this exists
 
-- repository and PR number
-- PR title and author
-- PR state and merge state
-- head/base commit SHAs
-- additions, deletions, and changed files
-- commit SHAs, authors, messages, and GitHub verification flags
+Developer profiles and reputation systems usually begin with a claim:
+
+> “I worked on this.”
+
+Base Proof starts one layer lower:
+
+> “Here is the exact evidence snapshot that was anchored.”
+
+The MVP intentionally does **not** assign an opaque contribution score. It records evidence first. Applications can later build reputation models on top of independently inspectable proof data.
+
+## Evidence model
+
+The GitHub adapter currently captures:
+
+- repository and pull-request number
+- PR URL, title, author, state, and merge state
+- head and base commit SHAs
+- additions, deletions, and changed-file count
+- commit SHA, author, message, and GitHub verification flag
 - submitted reviews
 - CI/check-run names, status, and conclusions
-- source ID and deterministic evidence hash
 
-## Contract model
+The evidence object is recursively canonicalized before hashing.
 
-`BaseProofRegistry` stores:
+See [GitHub Evidence Schema v1](docs/EVIDENCE_SCHEMA.md).
+
+## Deterministic identities
+
+GitHub source identity:
+
+```text
+source = "github:<owner>/<repo>#<pull_number>"
+sourceId = keccak256(utf8(source))
+```
+
+Proof identity:
+
+```solidity
+proofId = keccak256(
+    abi.encode(
+        subject,
+        sourceId,
+        evidenceHash,
+        block.chainid
+    )
+);
+```
+
+The same logical proof therefore has a deterministic ID on a given chain.
+
+## Registry
+
+The MVP contract stores:
 
 ```solidity
 struct Proof {
@@ -63,45 +120,83 @@ struct Proof {
 }
 ```
 
-Only authorized verifier addresses can register or revoke proofs in the current MVP.
+Current write access is restricted to an owner-managed verifier allowlist.
 
-A proof ID is deterministic:
+Contract source: [contracts/BaseProofRegistry.sol](contracts/BaseProofRegistry.sol)
 
+## Trust boundary
+
+Base Proof is currently a **verifier registry**, not a trustless oracle.
+
+Independently verifiable today:
+
+- onchain proof record
+- subject address
+- source ID
+- evidence hash
+- creation time
+- revoked state
+- public source data used to reconstruct a GitHub evidence snapshot
+
+Still dependent on the verifier/client implementation:
+
+- correct evidence collection
+- complete GitHub pagination
+- canonicalization correctness
+- semantic interpretation of external source data
+
+The MVP is on **Base Sepolia** and has not undergone a professional smart-contract audit.
+
+See [SECURITY.md](SECURITY.md).
+
+## Repository layout
+
+```text
+.
+├── contracts/
+│   └── BaseProofRegistry.sol
+├── docs/
+│   ├── ARCHITECTURE.md
+│   └── EVIDENCE_SCHEMA.md
+├── index.html
+├── SECURITY.md
+└── README.md
 ```
-keccak256(
-  abi.encode(
-    subject,
-    sourceId,
-    evidenceHash,
-    block.chainid
-  )
-)
+
+## Run the web MVP locally
+
+The current UI is a static client.
+
+```bash
+python -m http.server 8080
 ```
 
-That makes duplicate registration of the same proof detectable before submitting a transaction.
+Then open:
 
-## Security notes
+```text
+http://127.0.0.1:8080
+```
 
-- No private key is committed to this repository.
-- The public web build uses a connected wallet for writes.
-- The current contract has an owner-managed verifier allowlist.
-- The MVP is deployed on Base Sepolia, not Base mainnet.
-- GitHub evidence is public-source evidence. Future versions should support signed attestations, stronger provenance checks, immutable evidence bundles, and challenge/dispute flows.
+A wallet-enabled browser is required only for proof registration. Public proof verification is read-only.
 
 ## Roadmap
 
-- persistent content-addressed evidence bundles
-- richer GitHub pagination and linked-issue evidence
+- immutable/content-addressed evidence bundles
+- complete pagination and linked-issue evidence
 - proof profile pages
-- challenge / dispute flow
-- verifier signatures and delegated verification
-- ERC-8004 integration for agent identity / reputation evidence
-- ERC-8021 attribution support
-- additional evidence adapters beyond GitHub
+- challenge and dispute flows
+- multiple independent verifiers
+- verifier signatures / delegated verification
+- ERC-8004 agent identity and reputation evidence
+- ERC-8021 builder attribution
+- evidence adapters beyond GitHub
+- mainnet deployment after protocol hardening and audit
 
 ## Status
 
-Working MVP. The protocol and evidence schema are expected to evolve.
+**Working MVP / experimental protocol.**
+
+The evidence schema and trust model are expected to evolve.
 
 ## License
 
