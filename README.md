@@ -196,7 +196,13 @@ It adds:
 
 The full lifecycle and trust assumptions are documented in [docs/DISPUTES.md](docs/DISPUTES.md).
 
-**Deployment status:** V2 source and deployment tooling are ready; the existing public demo remains on the original Base Sepolia registry until the V2 deployment is signed and its address is wired into the UI.
+**Deployment status:** V2 is deployed on Base Sepolia.
+
+- V2 contract: `0x1a6F58F1c98f2ECA265D3B3A0Fb3ED74273765De`
+- Deployment tx: `0xa72c71848f700516cfbddeab842fd24decab13d1562fd50bcce8e4e7f2ecab5a`
+- Live dispute UI: https://base-proof-ertekh-1454s-projects.vercel.app/v2.html
+
+The original V1 proof remains available for backwards-compatible demo verification.
 
 ## Roadmap
 
